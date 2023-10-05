@@ -1,0 +1,106 @@
+#Personel_Budget_Tracker-
+
+
+import sqlite3
+import os
+import sys
+from datetime import datetime
+
+# Database initialization and table creation
+conn = sqlite3.connect('budget.db')
+cursor = conn.cursor()
+cursor.execute('''CREATE TABLE IF NOT EXISTS transactions (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  category TEXT NOT NULL,
+                  amount REAL NOT NULL,
+                  date TEXT NOT NULL,
+                  type TEXT NOT NULL)''')
+conn.commit()
+
+class Transaction:
+    def __init__(self, category, amount, date, transaction_type):
+        self.category = category
+        self.amount = amount
+        self.date = date
+        self.type = transaction_type
+
+class TransactionManager:
+    def __init__(self):
+        self.conn = sqlite3.connect('budget.db')
+        self.cursor = self.conn.cursor()
+
+    def add_transaction(self, transaction):
+        self.cursor.execute('''INSERT INTO transactions (category, amount, date, type)
+                               VALUES (?, ?, ?, ?)''', (transaction.category, transaction.amount, transaction.date, transaction.type))
+        self.conn.commit()
+
+    def get_transactions(self):
+        self.cursor.execute("SELECT * FROM transactions")
+        transactions = self.cursor.fetchall()
+        return transactions
+
+    def close(self):
+        self.conn.close()
+
+class BudgetTracker:
+    def __init__(self):
+        self.transaction_manager = TransactionManager()
+
+    def main_menu(self):
+        while True:
+            print("\n===== Budget Tracker =====")
+            print("1. Add Expense")
+            print("2. Add Income")
+            print("3. View Transactions")
+            print("4. View Budget")
+            print("5. Exit")
+
+            choice = input("Enter your choice: ")
+
+            if choice == '1':
+                category = input("Enter expense category: ")
+                amount = float(input("Enter expense amount: "))
+                date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                transaction = Transaction(category, -amount, date, "Expense")
+                self.transaction_manager.add_transaction(transaction)
+                print("Expense added successfully!")
+
+            elif choice == '2':
+                category = input("Enter income category: ")
+                amount = float(input("Enter income amount: "))
+                date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                transaction = Transaction(category, amount, date, "Income")
+                self.transaction_manager.add_transaction(transaction)
+                print("Income added successfully!")
+
+            elif choice == '3':
+                transactions = self.transaction_manager.get_transactions()
+                if transactions:
+                    print("\n===== Transactions =====")
+                    for transaction in transactions:
+                        transaction_id, category, amount, date, transaction_type = transaction
+                        print(f"ID: {transaction_id}, Category: {category}, Amount: {amount}, Date: {date}, Type: {transaction_type}")
+                else:
+                    print("No transactions found!")
+
+            elif choice == '4':
+                transactions = self.transaction_manager.get_transactions()
+                total_income = sum(transaction[2] for transaction in transactions if transaction[3] == "Income")
+                total_expenses = sum(transaction[2] for transaction in transactions if transaction[3] == "Expense")
+                budget = total_income - total_expenses
+                print(f"\n===== Budget Summary =====")
+                print(f"Total Income: {total_income}")
+                print(f"Total Expenses: {total_expenses}")
+                print(f"Budget: {budget}")
+
+            elif choice == '5':
+                self.transaction_manager.close()
+                sys.exit(0)
+
+            else:
+                print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    budget_tracker = BudgetTracker()
+    budget_tracker.main_menu()
+
